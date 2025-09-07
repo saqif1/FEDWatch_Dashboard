@@ -53,7 +53,7 @@ FRED_SERIES = {
 selected_assets = st.sidebar.multiselect(
     "Select Balance Sheet Components",
     list(FRED_SERIES.keys()),
-    default=["Total Assets", "Treasury Securities", "Mortgage-Backed Securities", "Bank Reserves"]
+    default=["Total Assets", "Treasury Securities", "Mortgage-Backed Securities", "Bank Reserves", "Loans", "Reverse Repo Foreign"]
 )
 
 # Function to fetch data from FRED
