@@ -41,7 +41,7 @@ start_date = st.sidebar.date_input(
 FRED_SERIES = {
     "Total Assets": "WALCL",  # Assets: Total Assets: Total Assets (Less Eliminations from Consolidation): Wednesday Level
     "Treasury Securities": "TREAST",  # Assets: Securities Held Outright: U.S. Treasury Securities: All: Wednesday Level
-    "Mortgage-Backed Securities": "SWPT",  # Assets: Securities Held Outright: Mortgage-Backed Securities: Wednesday Level
+    "Mortgage-Backed Securities": "WSHOMCB",  # Assets: Securities Held Outright: Mortgage-Backed Securities: Wednesday Level
     "Bank Reserves": "WRESBAL",  # Liabilities: Reserve Balances with Federal Reserve Banks: Wednesday Level
     "Reverse Repo Foreign": "WLRRAFOIAL",  # Liabilities: Reverse Repurchase Agreements: Foreign Official and International Accounts: Wednesday Level
     "Central Bank Liquidity Swaps": "SWPT",  # Assets: Central Bank Liquidity Swaps: Wednesday Level
@@ -355,7 +355,7 @@ with st.expander("FRED Series Reference"):
     |-------------|---------|-------------|
     | Total Assets | WALCL | Assets: Total Assets: Total Assets (Less Eliminations from Consolidation): Wednesday Level |
     | Treasury Securities | TREAST | Assets: Securities Held Outright: U.S. Treasury Securities: All: Wednesday Level |
-    | Mortgage-Backed Securities | SWPT | Assets: Securities Held Outright: Mortgage-Backed Securities: Wednesday Level |
+    | Mortgage-Backed Securities | WSHOMCB | Assets: Securities Held Outright: Mortgage-Backed Securities: Wednesday Level |
     | Bank Reserves | WRESBAL | Liabilities: Reserve Balances with Federal Reserve Banks: Wednesday Level |
     | Reverse Repo Foreign | WLRRAFOIAL | Liabilities: Reverse Repurchase Agreements: Foreign Official and International Accounts: Wednesday Level |
     | Central Bank Liquidity Swaps | SWPT | Assets: Central Bank Liquidity Swaps: Wednesday Level |
