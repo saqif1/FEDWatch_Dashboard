@@ -24,7 +24,12 @@ st.sidebar.header("Dashboard Controls")
 api_key = st.sidebar.text_input("FRED API Key", type="password", 
                                help="Get your API key from https://research.stlouisfed.org/docs/api/api_key.html")
 
-# Date range selector
+# Check if API key is provided FIRST
+if not api_key or api_key.strip() == "":
+    st.warning("🔑 Please enter your FRED API key in the sidebar to load data")
+    st.stop()
+
+# Date range selector (only show if API key is provided)
 end_date = datetime.now()
 start_date = st.sidebar.date_input(
     "Start Date",
@@ -98,11 +103,6 @@ def fetch_fred_data(series_id, api_key, start_date):
         st.error(f"Error fetching data for {series_id}: {str(e)}")
         return None
 
-# Check if API key is provided
-if not api_key or api_key.strip() == "":
-    st.warning("🔑 Please enter your FRED API key in the sidebar to load data")
-    st.stop()
-
 # Fetch data when API key is provided
 with st.spinner("Fetching data from FRED..."):
     all_data = []
@@ -117,6 +117,7 @@ with st.spinner("Fetching data from FRED..."):
         else:
             st.warning(f"Could not fetch data for {asset_name} (series: {series_id})")
     
+    # Check if any data was successfully fetched
     if successful_fetches == 0:
         st.error("❌ Could not fetch any data. Please check your API key and try again.")
         st.stop()
@@ -355,9 +356,9 @@ with st.expander("FRED Series Reference"):
     | Total Assets | WALCL | Assets: Total Assets: Total Assets (Less Eliminations from Consolidation): Wednesday Level |
     | Treasury Securities | TREAST | Assets: Securities Held Outright: U.S. Treasury Securities: All: Wednesday Level |
     | Mortgage-Backed Securities | SWPT | Assets: Securities Held Outright: Mortgage-Backed Securities: Wednesday Level |
-    | Bank Reserves | RESBALNS | Liabilities: Reserve Balances with Federal Reserve Banks: Wednesday Level |
-    | Reverse Repo Foreign | WLRRAFIL | Liabilities: Reverse Repurchase Agreements: Foreign Official and International Accounts: Wednesday Level |
-    | Central Bank Liquidity Swaps | SWC | Assets: Central Bank Liquidity Swaps: Wednesday Level |
+    | Bank Reserves | WRESBAL | Liabilities: Reserve Balances with Federal Reserve Banks: Wednesday Level |
+    | Reverse Repo Foreign | WLRRAFOIAL | Liabilities: Reverse Repurchase Agreements: Foreign Official and International Accounts: Wednesday Level |
+    | Central Bank Liquidity Swaps | SWPT | Assets: Central Bank Liquidity Swaps: Wednesday Level |
     | Loans | WLCFLL | Assets: Liquidity and Credit Facilities: Loans: Wednesday Level |
     | Securities in Custody | WFCDA | Securities held in custody for foreign official and international accounts |
     """)
