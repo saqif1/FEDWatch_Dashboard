@@ -33,7 +33,7 @@ if not api_key or api_key.strip() == "":
 end_date = datetime.now()
 start_date = st.sidebar.date_input(
     "Start Date",
-    value=end_date - timedelta(days=365*3),
+    value=end_date - timedelta(days=365*10),
     max_value=end_date
 )
 
