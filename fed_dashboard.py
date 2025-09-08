@@ -524,3 +524,14 @@ st.caption("""
 **Last Updated**: Weekly (Thursday afternoons) via H.4.1 report  
 **Note**: All values converted to billions of USD for display
 """)
+
+st.markdown("---")
+# LinkedIN
+st.markdown("### Connect with Me!")
+
+st.markdown("""
+<a href="https://www.linkedin.com/in/saqif-juhaimee-17322a119/">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" width="20">
+    Saqif Juhaimee
+</a>
+""", unsafe_allow_html=True)
