@@ -17,6 +17,20 @@ This dashboard visualizes key components of the Federal Reserve's balance sheet 
 Data is retrieved from the FRED API (Federal Reserve Economic Data).
 """)
 
+# Educational expander at the top
+with st.expander("📚 Quick Guide: Understanding the Fed's Balance Sheet", expanded=False):
+    st.markdown("""
+    **What is the Fed's Balance Sheet?**
+    - The Fed's balance sheet shows all the assets it owns and liabilities it owes
+    - **Assets**: Mostly Treasury bonds and Mortgage-Backed Securities (MBS) the Fed has purchased
+    - **Liabilities**: Mostly bank reserves and currency in circulation
+    
+    **Why It Matters:**
+    - 🎯 **Expanding balance sheet** = More money in economy = Lower interest rates = Good for stocks
+    - 🎯 **Shrinking balance sheet** = Less money in economy = Higher interest rates = Can be bad for stocks
+    - 🎯 **Stress indicators** show where financial markets are struggling
+    """)
+
 # Create sidebar for controls
 st.sidebar.header("Dashboard Controls")
 
@@ -37,23 +51,41 @@ start_date = st.sidebar.date_input(
     max_value=end_date
 )
 
-# Correct FRED series mapping based on the documentation
+# CORRECT FRED series mapping with ALL indicators
 FRED_SERIES = {
     "Total Assets": "WALCL",  # Assets: Total Assets: Total Assets (Less Eliminations from Consolidation): Wednesday Level
     "Treasury Securities": "TREAST",  # Assets: Securities Held Outright: U.S. Treasury Securities: All: Wednesday Level
     "Mortgage-Backed Securities": "WSHOMCB",  # Assets: Securities Held Outright: Mortgage-Backed Securities: Wednesday Level
-    "Bank Reserves": "WRESBAL",  # Liabilities: Reserve Balances with Federal Reserve Banks: Wednesday Level
+    "Bank Reserves": "WRBWFRBL",  # Liabilities: Reserve Balances with Federal Reserve Banks: Wednesday Level
     "Reverse Repo Foreign": "WLRRAFOIAL",  # Liabilities: Reverse Repurchase Agreements: Foreign Official and International Accounts: Wednesday Level
     "Central Bank Liquidity Swaps": "SWPT",  # Assets: Central Bank Liquidity Swaps: Wednesday Level
     "Loans": "WLCFLL",  # Assets: Liquidity and Credit Facilities: Loans: Wednesday Level
-    "Securities in Custody": "WFCDA",  # Securities held in custody for foreign official and international accounts
+    "Securities in Custody": "WFCDA",  # Assets: Other Factors Supplying Reserve Balances: Foreign Currency Denominated Assets: Wednesday Level
+    "Repo Operations": "WORAL",  # Assets: Other: Repurchase Agreements: Wednesday Level
+    "Other Assets": "WAOAL",  # Assets: Other: Other Assets, Consolidated Table: Wednesday Level 
 }
 
-# Asset selection
+# Asset selection with tooltips
+st.sidebar.markdown("**Select Components to Display:**")
+with st.sidebar.expander("ℹ️ What each component means"):
+    st.markdown("""
+    - **Total Assets**: Overall size of Fed's balance sheet - THE BIG PICTURE
+    - **Treasury Securities**: US government bonds owned by Fed - SUPPORTS GOVERNMENT BORROWING
+    - **Mortgage-Backed Securities**: Housing market loans packaged as securities - SUPPORTS HOUSING MARKET
+    - **Bank Reserves**: Cash banks keep at the Fed - LIQUIDITY IN BANKING SYSTEM
+    - **Reverse Repo Foreign**: Foreign central banks parking cash at Fed - FOREIGN DEMAND FOR USD SAFETY
+    - **Central Bank Liquidity Swaps**: Emergency USD loans to foreign banks - OFFSHORE DOLLAR STRESS
+    - **Loans**: Emergency lending to US institutions - DOMESTIC CREDIT STRESS
+    - **Securities in Custody**: Treasuries held for foreign governments - FOREIGN RESERVE HOLDINGS
+    - **Repo Operations**: Short-term liquidity operations - MONEY MARKET CONDITIONS
+    - **Other Assets**: Miscellaneous Fed assets - WATCH FOR UNUSUAL ITEMS
+    """)
+
 selected_assets = st.sidebar.multiselect(
-    "Select Balance Sheet Components",
+    "Balance Sheet Components",
     list(FRED_SERIES.keys()),
-    default=["Total Assets", "Treasury Securities", "Mortgage-Backed Securities", "Bank Reserves", "Loans", "Reverse Repo Foreign", "Central Bank Liquidity Swaps", "Securities in Custody"]
+    default=["Total Assets", "Treasury Securities", "Mortgage-Backed Securities", "Bank Reserves", 
+             "Reverse Repo Foreign", "Central Bank Liquidity Swaps", "Loans", "Securities in Custody"]
 )
 
 # Function to fetch data from FRED
@@ -68,7 +100,7 @@ def fetch_fred_data(series_id, api_key, start_date):
         "api_key": api_key,
         "file_type": "json",
         "observation_start": start_date.strftime("%Y-%m-%d"),
-        "frequency": "w",  # Weekly data
+        "frequency": "w",
         "units": "lin"
     }
     
@@ -79,10 +111,8 @@ def fetch_fred_data(series_id, api_key, start_date):
         
         observations = data.get('observations', [])
         if not observations:
-            st.error(f"No data found for series {series_id}")
             return None
             
-        # Convert to DataFrame
         df = pd.DataFrame(observations)
         df['value'] = pd.to_numeric(df['value'], errors='coerce')
         df['date'] = pd.to_datetime(df['date'])
@@ -93,17 +123,10 @@ def fetch_fred_data(series_id, api_key, start_date):
             
         return df[['date', 'value']].rename(columns={'value': series_id})
         
-    except requests.exceptions.HTTPError as e:
-        if response.status_code == 403:
-            st.error("Invalid API key. Please check your FRED API key.")
-        else:
-            st.error(f"HTTP Error: {str(e)}")
-        return None
     except Exception as e:
-        st.error(f"Error fetching data for {series_id}: {str(e)}")
         return None
 
-# Fetch data when API key is provided
+# Fetch data
 with st.spinner("Fetching data from FRED..."):
     all_data = []
     successful_fetches = 0
@@ -117,7 +140,6 @@ with st.spinner("Fetching data from FRED..."):
         else:
             st.warning(f"Could not fetch data for {asset_name} (series: {series_id})")
     
-    # Check if any data was successfully fetched
     if successful_fetches == 0:
         st.error("❌ Could not fetch any data. Please check your API key and try again.")
         st.stop()
@@ -147,6 +169,16 @@ col1, col2 = st.columns([2, 1])
 
 with col1:
     st.subheader("Fed Balance Sheet Components")
+    
+    # Educational tooltip
+    with st.expander("💡 How to interpret this chart", expanded=False):
+        st.markdown("""
+        - **Rising lines** = Fed is adding liquidity to that area
+        - **Falling lines** = Fed is reducing support
+        - **Total Assets rising** = Generally bullish for risk assets (QE)
+        - **Total Assets falling** = Generally bearish for risk assets (QT)
+        - **Stress indicators rising** = Market trouble brewing
+        """)
     
     # Create interactive chart
     fig = go.Figure()
@@ -187,29 +219,67 @@ with col2:
                 change = current_val - prev_val
                 change_pct = (change / prev_val * 100) if prev_val != 0 else 0
                 
+                # Color coding for metrics
+                delta_color = "normal"
+                if "Assets" in asset or "Securities" in asset or "Reserves" in asset:
+                    if change > 0:
+                        delta_color = "inverse"  # Green for increasing assets
+                elif "Loans" in asset or "Swaps" in asset:
+                    if change > 0:
+                        delta_color = "off"  # Red for increasing stress indicators
+                
                 st.metric(
                     label=asset,
                     value=f"${current_val:,.0f}B",
-                    delta=f"{change:+.1f}B ({change_pct:+.1f}%)"
+                    delta=f"{change:+.1f}B ({change_pct:+.1f}%)",
+                    delta_color=delta_color
                 )
     else:
         st.warning("Insufficient data for metrics comparison")
     
-    st.subheader("Market Insights")
-    st.info("""
-    - **Expanding balance sheet**: Accommodative monetary policy
-    - **High credit facilities usage**: Market stress indicator  
-    - **Declining foreign repo**: Possible Treasury selling for FX intervention
-    - **Rising liquidity swaps**: Offshore dollar funding stress
-    """)
+    st.subheader("📋 Quick Interpretation Guide")
+    with st.expander("What these numbers mean for markets"):
+        st.markdown("""
+        **🟢 Bullish Signals:**
+        - Total Assets increasing (QE)
+        - Treasury/MBS purchases rising
+        - Bank reserves growing
+        - Foreign repo increasing (demand for USD)
+        
+        **🔴 Bearish Signals:**
+        - Total Assets decreasing (QT)
+        - Stress indicators rising sharply
+        - Foreign sector pulling money out
+        - Loans increasing rapidly
+        
+        **⚠️ Watch Out For:**
+        - Liquidity swaps > $100B = Offshore stress
+        - Loans > $50B = Domestic credit stress
+        - Foreign repo declining sharply = Potential trouble
+        """)
 
 # Additional analysis tabs
 st.subheader("Detailed Analysis")
 
-tab1, tab2, tab3, tab4 = st.tabs(["Composition", "Growth Rates", "Stress Indicators", "Foreign Sector"])
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Composition", "📈 Growth Rates", "⚡ Stress Indicators", "🌍 Foreign Sector"])
 
 with tab1:
     st.write("**Balance Sheet Composition Over Time**")
+    
+    with st.expander("🎯 Why composition matters"):
+        st.markdown("""
+        **Composition tells you WHERE the Fed is focused:**
+        - More Treasuries = Supporting government borrowing
+        - More MBS = Supporting housing market  
+        - More Loans = Emergency market support
+        - Changing mix = Shifting policy priorities
+        
+        **Normal Composition:**
+        - 50-60% Treasury Securities
+        - 30-40% Mortgage-Backed Securities
+        - 5-10% Other assets
+        - Stress facilities near ZERO in normal times
+        """)
     
     if 'Total Assets' in display_data.columns:
         # Calculate percentages
@@ -238,6 +308,21 @@ with tab1:
 
 with tab2:
     st.write("**Weekly and Annual Growth Rates**")
+    
+    with st.expander("📖 Reading growth rates"):
+        st.markdown("""
+        **Growth Rate Interpretation:**
+        - **Positive growth** = Expansion in that area
+        - **Negative growth** = Contraction in that area  
+        - **>10% weekly** = Emergency measures likely
+        - **<-5% weekly** = Active tightening
+        - Compare weekly vs annual for trend changes
+        
+        **What to watch:**
+        - Treasury growth = QE/QT pace
+        - MBS growth = Housing support level
+        - Stress indicator growth = Problem severity
+        """)
     
     growth_data = display_data.copy()
     for col in growth_data.columns:
@@ -280,6 +365,24 @@ with tab2:
 with tab3:
     st.write("**Market Stress Indicators**")
     
+    with st.expander("🚨 Understanding stress indicators"):
+        st.markdown("""
+        **When to worry:**
+        - **Liquidity Swaps > $100B** = Offshore dollar shortage
+        - **Loans > $50B** = Domestic credit problems
+        - **Rapid increases** = Market panic emerging
+        - **Sustained highs** = Structural problems
+        
+        **Real-world examples:**
+        - COVID-19 crisis: Both indicators spiked to $500B+
+        - 2008 crisis: Loans spiked to $1.5T
+        - Normal times: Both near zero
+        
+        **Trading implications:**
+        - Rising stress = Reduce risk exposure
+        - Falling stress = Opportunity to add risk
+        """)
+    
     stress_indicators = []
     if 'Central Bank Liquidity Swaps' in display_data.columns:
         stress_indicators.append('Central Bank Liquidity Swaps')
@@ -296,11 +399,14 @@ with tab3:
                     display_data, 
                     x='date', 
                     y='Central Bank Liquidity Swaps',
-                    title="Central Bank Liquidity Swaps",
+                    title="Offshore Dollar Stress (Central Bank Liquidity Swaps)",
                     labels={'Central Bank Liquidity Swaps': 'Billions USD'}
                 )
+                # Add stress threshold line
+                fig_swaps.add_hline(y=100, line_dash="dash", line_color="red", 
+                                  annotation_text="Stress Threshold", annotation_position="bottom right")
                 st.plotly_chart(fig_swaps, use_container_width=True)
-                st.caption("High values indicate offshore dollar funding stress")
+                st.caption("Values above $100B indicate serious offshore dollar funding stress")
         
         if 'Loans' in stress_indicators:
             with col2:
@@ -309,16 +415,36 @@ with tab3:
                     display_data, 
                     x='date', 
                     y='Loans',
-                    title="Credit Facility Loans",
+                    title="Domestic Credit Stress (Loans)",
                     labels={'Loans': 'Billions USD'}
                 )
+                # Add stress threshold line
+                fig_loans.add_hline(y=50, line_dash="dash", line_color="red",
+                                  annotation_text="Stress Threshold", annotation_position="bottom right")
                 st.plotly_chart(fig_loans, use_container_width=True)
-                st.caption("High values indicate domestic market stress")
+                st.caption("Values above $50B indicate domestic credit market stress")
     else:
         st.warning("Select 'Central Bank Liquidity Swaps' and/or 'Loans' to view stress indicators")
 
 with tab4:
     st.write("**Foreign Sector Activity**")
+    
+    with st.expander("🌎 Foreign sector signals"):
+        st.markdown("""
+        **What foreign activity tells you:**
+        - **Reverse Repo falling** = Foreign banks pulling cash = Potential trouble
+        - **Securities falling** = Foreign selling Treasuries = USD weakness possible
+        - **Both falling** = Global dollar reduction = Risk-off environment
+        
+        **Trading implications:**
+        - Foreign outflow = Watch USD strength
+        - Large moves = Potential currency intervention
+        - Sustained trends = Structural shifts
+        
+        **Normal ranges:**
+        - Reverse Repo: $100-300B in normal times
+        - Securities in Custody: $3-4T typically
+        """)
     
     foreign_metrics = []
     if 'Reverse Repo Foreign' in display_data.columns:
@@ -336,33 +462,63 @@ with tab4:
         )
         st.plotly_chart(fig_foreign, use_container_width=True)
         
-        st.info("""
-        **Foreign Sector Insights**:
-        - Declining Reverse Repo Foreign: Foreign central banks may be selling Treasuries
-        - Declining Securities in Custody: Reduction in foreign official dollar reserves
-        - Both can indicate FX intervention or diversification away from USD
-        """)
+        # Add specific insights based on current data
+        if len(display_data) > 0:
+            latest = display_data.iloc[-1]
+            if 'Reverse Repo Foreign' in latest:
+                repo_change = ""
+                if 'Reverse Repo Foreign' in display_data.columns and len(display_data) > 1:
+                    current_repo = latest['Reverse Repo Foreign']
+                    prev_repo = display_data.iloc[-2]['Reverse Repo Foreign']
+                    if current_repo < prev_repo:
+                        repo_change = "🔻 Decreasing - Foreign banks may be pulling cash"
+                    elif current_repo > prev_repo:
+                        repo_change = "🔺 Increasing - Foreign demand for USD safety"
+                
+                st.info(f"""
+                **Current Foreign Repo: ${latest.get('Reverse Repo Foreign', 0):.1f}B**
+                {repo_change}
+                """)
     else:
         st.warning("Select foreign sector metrics to view this analysis")
 
-# Data source and documentation
+# Final educational section
 st.markdown("---")
-st.subheader("Data Documentation")
+st.subheader("🎓 Fed Balance Sheet Quick Notes")
 
-with st.expander("FRED Series Reference"):
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("**🤔 Why Watch the Fed?**")
     st.markdown("""
-    | Series Name | FRED ID | Description |
-    |-------------|---------|-------------|
-    | Total Assets | WALCL | Assets: Total Assets: Total Assets (Less Eliminations from Consolidation): Wednesday Level |
-    | Treasury Securities | TREAST | Assets: Securities Held Outright: U.S. Treasury Securities: All: Wednesday Level |
-    | Mortgage-Backed Securities | WSHOMCB | Assets: Securities Held Outright: Mortgage-Backed Securities: Wednesday Level |
-    | Bank Reserves | WRESBAL | Liabilities: Reserve Balances with Federal Reserve Banks: Wednesday Level |
-    | Reverse Repo Foreign | WLRRAFOIAL | Liabilities: Reverse Repurchase Agreements: Foreign Official and International Accounts: Wednesday Level |
-    | Central Bank Liquidity Swaps | SWPT | Assets: Central Bank Liquidity Swaps: Wednesday Level |
-    | Loans | WLCFLL | Assets: Liquidity and Credit Facilities: Loans: Wednesday Level |
-    | Securities in Custody | WFCDA | Securities held in custody for foreign official and international accounts |
+    - Fed controls money supply
+    - Affects interest rates
+    - Impacts all asset prices
+    - Early warning system
+    - Predicts policy changes
     """)
 
+with col2:
+    st.markdown("**📈 Bullish Environments**")
+    st.markdown("""
+    - Balance sheet expanding (QE)
+    - Stress indicators low
+    - Foreign money flowing in
+    - Stable composition
+    - Low loan activity
+    """)
+
+with col3:
+    st.markdown("**📉 Bearish Environments**")
+    st.markdown("""
+    - Balance sheet shrinking (QT)
+    - Stress indicators high
+    - Foreign money leaving
+    - Composition changing rapidly
+    - High loan activity
+    """)
+
+# Data source
 st.caption("""
 **Data Source**: Federal Reserve Economic Data (FRED) - Federal Reserve Bank of St. Louis  
 **Last Updated**: Weekly (Thursday afternoons) via H.4.1 report  
